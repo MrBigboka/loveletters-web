@@ -157,27 +157,28 @@ export function initializeGame(playerIds: string[], playerNames: string[]): Game
   // Create shuffled deck
   const deck = shuffleDeck([...CARD_DECK]);
   
-  // Initialize players
-  const players = playerIds.map((id, index) => ({
+  // Initialize players with empty arrays
+  const players: Player[] = playerIds.map((id, index) => ({
     id,
     name: playerNames[index] || `Joueur ${index + 1}`,
-    hand: [],
-    discardPile: [],
+    hand: [] as Card[],
+    discardPile: [] as Card[],
     isProtected: false,
     isEliminated: false,
     tokens: 0
   }));
   
-  // Burn one card (face down) if less than 4 players
+  // Burn one card (face-down)
   let burnedCard: Card | undefined;
-  if (players.length < 4) {
+  if (deck.length > 0) {
     burnedCard = deck.pop();
   }
   
   // Deal one card to each player
   players.forEach(player => {
     if (deck.length > 0) {
-      player.hand.push(deck.pop()!);
+      const card = deck.pop();
+      if (card) player.hand.push(card);
     }
   });
   
@@ -214,10 +215,12 @@ export function drawCard(gameState: GameState, playerId: string): GameState {
   }
   
   if (updatedState.deck.length > 0) {
-    const card = updatedState.deck.pop()!;
-    player.hand.push(card);
-    updatedState.gameLog.push(`${player.name} pioche une carte.`);
-    updatedState.turnPhase = 'play';
+    const card = updatedState.deck.pop();
+    if (card) {
+      player.hand.push(card);
+      updatedState.gameLog.push(`${player.name} pioche une carte.`);
+      updatedState.turnPhase = 'play';
+    }
   } else {
     // If deck is empty, end the round
     updatedState.turnPhase = 'roundEnd';
@@ -234,7 +237,7 @@ export function playCard(
   playerId: string, 
   cardId: string, 
   targetPlayerId?: string, 
-  additionalInfo?: any
+  additionalInfo?: { guessedRank?: CardRank }
 ): GameState {
   const updatedState = { ...gameState };
   const player = updatedState.players.find(p => p.id === playerId);
@@ -278,7 +281,7 @@ function handleCardEffect(
   player: Player, 
   card: Card, 
   targetPlayerId?: string, 
-  additionalInfo?: any
+  additionalInfo?: { guessedRank?: CardRank }
 ): GameState {
   const updatedState = { ...gameState };
 
@@ -344,20 +347,24 @@ function handleCardEffect(
         const targetPlayer = updatedState.players.find(p => p.id === targetPlayerId);
         if (targetPlayer && !targetPlayer.isProtected && !targetPlayer.isEliminated) {
           if (targetPlayer.hand.length > 0) {
-            const discardedCard = targetPlayer.hand.pop()!;
-            targetPlayer.discardPile.push(discardedCard);
-            
-            updatedState.gameLog.push(`${targetPlayer.name} défausse ${discardedCard.name}.`);
-            
-            // Check for Princess
-            if (discardedCard.rank === 8) {
-              targetPlayer.isEliminated = true;
-              updatedState.gameLog.push(`${targetPlayer.name} a défaussé la Princesse et est éliminé !`);
-            } else if (updatedState.deck.length > 0) {
-              // Draw a new card
-              const newCard = updatedState.deck.pop()!;
-              targetPlayer.hand.push(newCard);
-              updatedState.gameLog.push(`${targetPlayer.name} pioche une nouvelle carte.`);
+            const discardedCard = targetPlayer.hand.pop();
+            if (discardedCard) {
+              targetPlayer.discardPile.push(discardedCard);
+              
+              updatedState.gameLog.push(`${targetPlayer.name} défausse ${discardedCard.name}.`);
+              
+              // Check for Princess
+              if (discardedCard.rank === 8) {
+                targetPlayer.isEliminated = true;
+                updatedState.gameLog.push(`${targetPlayer.name} a défaussé la Princesse et est éliminé !`);
+              } else if (updatedState.deck.length > 0) {
+                // Draw a new card
+                const newCard = updatedState.deck.pop();
+                if (newCard) {
+                  targetPlayer.hand.push(newCard);
+                  updatedState.gameLog.push(`${targetPlayer.name} pioche une nouvelle carte.`);
+                }
+              }
             }
           }
         }
@@ -552,7 +559,8 @@ export function startNewRound(gameState: GameState): GameState {
   // Deal one card to each player
   updatedState.players.forEach(player => {
     if (updatedState.deck.length > 0) {
-      player.hand.push(updatedState.deck.pop()!);
+      const card = updatedState.deck.pop();
+      if (card) player.hand.push(card);
     }
   });
   
