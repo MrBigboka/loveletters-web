@@ -1,74 +1,150 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { nanoid } from "nanoid";
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { initializeSocket, getSocket } from "@/app/utils/socket";
 
-export default function CreateLobby() {
+export default function CreateLobbyPage() {
   const router = useRouter();
   const [playerName, setPlayerName] = useState("");
+  const [lobbyCode, setLobbyCode] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-
-  const handleCreateGame = () => {
-    if (!playerName.trim()) return;
+  const [error, setError] = useState("");
+  
+  // Initialiser Socket.IO
+  useEffect(() => {
+    const socket = initializeSocket();
     
+    // Écouter l'événement de création de partie
+    socket.on('gameCreated', ({ gameId, playerId }) => {
+      console.log('Partie créée:', gameId, 'Joueur:', playerId);
+      setLobbyCode(gameId);
+      
+      // Rediriger vers la page de jeu
+      router.push(`/game?lobby=${gameId}&name=${encodeURIComponent(playerName)}&host=true&playerId=${playerId}`);
+    });
+    
+    // Écouter les erreurs
+    socket.on('error', ({ message }) => {
+      setError(message);
+      setIsCreating(false);
+    });
+    
+    return () => {
+      // Nettoyer les écouteurs d'événements
+      socket.off('gameCreated');
+      socket.off('error');
+    };
+  }, [playerName, router]);
+  
+  // Fonction pour créer une partie
+  const handleCreateLobby = () => {
+    if (!playerName.trim()) {
+      setError("Veuillez entrer votre nom");
+      return;
+    }
+    
+    setError("");
     setIsCreating(true);
     
-    // Générer un code de lobby unique avec nanoid (facile à partager)
-    const lobbyCode = nanoid(6).toUpperCase();
-    
-    // Dans une implémentation réelle, nous enverrions ce code au serveur Socket.IO
-    // Pour l'instant, nous allons simplement rediriger vers la page du jeu
-    
-    // Simuler un délai réseau
-    setTimeout(() => {
-      router.push(`/game?lobby=${lobbyCode}&name=${encodeURIComponent(playerName)}&host=true`);
-    }, 500);
+    // Envoyer la demande de création de partie au serveur
+    const socket = getSocket();
+    if (socket) {
+      socket.emit('createGame', { playerName });
+    } else {
+      setError("Impossible de se connecter au serveur");
+      setIsCreating(false);
+    }
   };
-
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 to-slate-800 p-4">
-      <Card className="w-full max-w-md bg-slate-800 border-slate-700 text-white">
-        <CardHeader>
-          <CardTitle className="text-2xl">Créer une nouvelle partie</CardTitle>
-          <CardDescription className="text-slate-400">
-            Créez une partie et invitez vos amis à vous rejoindre
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+      <motion.div 
+        className="max-w-md w-full"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="bg-slate-800 border-slate-700 text-white shadow-xl">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl bg-gradient-to-r from-red-400 to-amber-300 bg-clip-text text-transparent">
+              Créer une partie
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {error && (
+              <Alert className="bg-red-900/20 text-red-400 border-red-800">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-white">Votre nom</Label>
+              <label htmlFor="playerName" className="text-sm font-medium text-slate-300">
+                Votre nom
+              </label>
               <Input
-                id="name"
-                placeholder="Entrez votre nom"
+                id="playerName"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
                 className="bg-slate-700 border-slate-600 text-white"
+                placeholder="Entrez votre nom"
+                disabled={isCreating}
               />
             </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Link href="/">
-            <Button variant="outline" className="border-red-800 bg-slate-800 text-white hover:bg-slate-700 hover:border-red-700">
-              Retour
-            </Button>
-          </Link>
-          <Button 
-            onClick={handleCreateGame} 
-            disabled={!playerName.trim() || isCreating}
-            className="bg-red-600 hover:bg-red-700 text-white"
-          >
-            {isCreating ? "Création..." : "Créer la partie"}
-          </Button>
-        </CardFooter>
-      </Card>
+            
+            <div className="flex flex-col space-y-2">
+              <motion.div 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Button 
+                  onClick={handleCreateLobby} 
+                  className="w-full bg-gradient-to-r from-red-500 to-amber-500 hover:from-red-600 hover:to-amber-600 text-white shadow-lg"
+                  disabled={isCreating}
+                >
+                  {isCreating ? "Création en cours..." : "Créer une partie"}
+                </Button>
+              </motion.div>
+              
+              <motion.div 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Link href="/lobby/join">
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-2 border-slate-600 bg-slate-700 text-white hover:bg-slate-600"
+                    disabled={isCreating}
+                  >
+                    Rejoindre une partie
+                  </Button>
+                </Link>
+              </motion.div>
+              
+              <motion.div 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Link href="/">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full mt-2 text-slate-400 hover:text-white hover:bg-slate-700"
+                    disabled={isCreating}
+                  >
+                    Retour
+                  </Button>
+                </Link>
+              </motion.div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }
