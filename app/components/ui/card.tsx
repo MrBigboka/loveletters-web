@@ -28,16 +28,33 @@ const getRankColor = (rank?: number) => {
 
 const getRankSymbol = (rank?: number) => {
   const symbols = {
-    1: '🗡️',
-    2: '👁️',
-    3: '⚔️',
-    4: '🛡️',
-    5: '👑',
-    6: '👑',
-    7: '👸',
-    8: '👸',
+    1: '👮‍♂️', // Garde - policier/garde
+    2: '🧙‍♂️', // Prêtre - magicien/sage qui voit
+    3: '⚔️',   // Baron - épées croisées pour duel
+    4: '🛡️',   // Servante - bouclier pour protection
+    5: '🤴',   // Prince - prince
+    6: '👑',   // Roi - couronne
+    7: '👵',   // Comtesse - femme âgée/noble
+    8: '👸',   // Princesse - princesse
   };
   return rank ? symbols[rank as keyof typeof symbols] : '❓';
+};
+
+const getCardDescription = (rank?: number) => {
+  if (!rank) return "";
+  
+  const descriptions = {
+    1: "Devinez la main d'un adversaire",
+    2: "Regardez la main d'un adversaire",
+    3: "Comparez votre main avec un adversaire",
+    4: "Protection jusqu'à votre prochain tour",
+    5: "Forcez un joueur à défausser sa main",
+    6: "Échangez votre main avec un autre joueur",
+    7: "Doit être défaussée si vous avez Roi ou Prince",
+    8: "Vous perdez si vous la défaussez",
+  };
+  
+  return descriptions[rank as keyof typeof descriptions];
 };
 
 export function Card({ card, isHidden = false, isSelected = false, isPlayable = false, isDiscard = false, onClick }: CardProps) {
@@ -63,20 +80,30 @@ export function Card({ card, isHidden = false, isSelected = false, isPlayable = 
       onClick={isPlayable ? onClick : undefined}
       style={{ transformStyle: 'preserve-3d' }}
     >
-      {/* Card Back */}
+      {/* Dos de la carte avec motif royal */}
       <motion.div 
         className={cn(
-          'absolute inset-0 rounded-xl border-4 border-slate-600 bg-gradient-to-br from-indigo-900 to-slate-900 shadow-xl',
-          isHidden ? 'z-10' : 'z-0'
+          "absolute inset-0 bg-gradient-to-br from-rose-800 to-red-950 rounded-xl p-1",
+          "flex items-center justify-center shadow-xl"
         )}
-        style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+        initial={{ rotateY: 0 }}
+        animate={{ rotateY: isHidden ? 0 : 180 }}
+        transition={{ duration: 0.6 }}
+        style={{ backfaceVisibility: 'hidden' }}
       >
-        <div className="absolute inset-4 flex items-center justify-center rounded-lg border-2 border-slate-600/50 bg-opacity-20 bg-gradient-to-br from-slate-800/50 to-slate-900/50">
-          <div className="text-2xl font-bold text-red-500 drop-shadow-glow">Love Letter</div>
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{ 
+            backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.2'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+            backgroundSize: "24px 24px"
+          }}/>
         </div>
+        <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
+          <span className="text-4xl">💌</span>
+        </div>
+        <div className="absolute bottom-3 text-white/80 text-xs font-medium">Love Letter</div>
       </motion.div>
 
-      {/* Card Front */}
+      {/* Face de la carte */}
       <motion.div 
         className={cn(
           'absolute inset-0 overflow-hidden rounded-xl border-4 bg-white shadow-xl',
@@ -86,45 +113,45 @@ export function Card({ card, isHidden = false, isSelected = false, isPlayable = 
       >
         {card ? (
           <>
-            {/* Card Header with glowing effect */}
+            {/* En-tête de la carte avec effet de lumière */}
             <div className={cn(
-              'relative h-10 bg-gradient-to-r flex items-center justify-between px-3 border-b-2 border-slate-200',
+              'relative h-12 bg-gradient-to-r flex items-center justify-between px-3 border-b-2 border-slate-200',
               getRankColor(card.rank)
             )}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white font-bold text-lg shadow-inner">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white font-bold text-lg shadow-inner">
                 {card.rank}
               </div>
-              <div className="font-medium text-white text-shadow">{card.name}</div>
+              <div className="font-medium text-white text-shadow drop-shadow-md">{card.name}</div>
             </div>
             
-            {/* Card Body with improved layout */}
+            {/* Corps de la carte avec mise en page améliorée */}
             <div className="flex flex-1 flex-col p-2">
-              <div className="text-xs text-slate-600 mb-1 font-medium">{card.description}</div>
+              <div className="text-xs text-slate-600 mb-1 font-medium">{getCardDescription(card.rank)}</div>
               <div className="text-xs italic text-slate-500 mb-3">{card.effect}</div>
               
-              {/* Card illustration/symbol with animation */}
+              {/* Illustration/symbole de la carte avec animation */}
               <motion.div 
                 className="flex-1 flex items-center justify-center"
                 initial={{ scale: 0.9 }}
                 animate={{ scale: 1, rotate: [0, 2, 0, -2, 0] }}
                 transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
               >
-                <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-slate-50 to-slate-200 shadow-inner">
-                  <span className="text-3xl">{getRankSymbol(card.rank)}</span>
+                <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-slate-50 to-slate-200 shadow-inner">
+                  <span className="text-5xl">{getRankSymbol(card.rank)}</span>
                   
-                  {/* Subtle glow effect based on card rank */}
+                  {/* Effet de lumière subtil en fonction du rang de la carte */}
                   <motion.div 
                     className={cn(
                       "absolute inset-0 rounded-full opacity-50 blur-md",
                       `bg-gradient-to-r ${getRankColor(card.rank)}`
                     )}
                     animate={{ opacity: [0.3, 0.5, 0.3] }}
-                    transition={{ repeat: Infinity, duration: 2 }}
+                    transition={{ duration: 2, repeat: Infinity }}
                   />
                 </div>
               </motion.div>
               
-              {/* Card footer with rank */}
+              {/* Pied de page de la carte avec rang */}
               <div className="mt-2 text-center">
                 <span className="text-xs font-semibold text-slate-600">Valeur: {card.rank}</span>
               </div>
@@ -137,7 +164,7 @@ export function Card({ card, isHidden = false, isSelected = false, isPlayable = 
         )}
       </motion.div>
 
-      {/* Glow effect when card is selected */}
+      {/* Effet de lumière lorsque la carte est sélectionnée */}
       {isSelected && (
         <motion.div
           className="absolute inset-0 -z-10 rounded-xl bg-red-500 blur-md"
