@@ -6,9 +6,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card as UICard, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card as UICard, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card as GameCard, CardHand, CardStack, DiscardPile } from "@/app/components/ui/card";
@@ -455,7 +453,7 @@ function GameContent() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
-          <p className="text-white text-sm">Cliquez sur une carte pour la sélectionner, puis sur "Jouer la carte"</p>
+          <p className="text-white text-sm">Cliquez sur une carte pour la sélectionner, puis sur &quot;Jouer la carte&quot;</p>
         </motion.div>
       )}
 
